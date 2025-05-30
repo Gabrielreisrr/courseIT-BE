@@ -1,4 +1,6 @@
 import Fastify, { FastifyInstance } from "fastify";
+import cors from "@fastify/cors";
+
 import { userRoutes } from "./routes/userRoutes";
 import { testRoutes } from "./routes/testRoutes";
 
@@ -24,7 +26,13 @@ class App {
     }
   }
 
-  private middlewares(): void {}
+  private middlewares(): void {
+    this.app.register(cors, {
+      origin: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      credentials: true,
+    });
+  }
 
   private routes(): void {
     this.app.register(userRoutes, { prefix: "/users" });
