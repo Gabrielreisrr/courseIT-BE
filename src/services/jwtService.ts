@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { TokenPayload } from "../schemas/auth.schema";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || "chave";
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET não definido no .env");
 }

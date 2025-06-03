@@ -8,26 +8,103 @@ datasource db {
 }
 
 model User {
-  id        Int         @id @default(autoincrement())
-  name      String
-  email     String      @unique
-  password  String
-  role      Role        @default(USER)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  tokens    AuthToken[]
+  id          String       @id @default(uuid())
+  name        String
+  email       String       @unique
+  password    String
+  role        Role        @default(STUDENT)
+  enrollments Enrollment[]
+  progress    Progress[]
+  courses     Course[]    // Courses created by admin
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  tokens      AuthToken[]
+}
+
+model Course {
+  id          String       @id @default(uuid())
+  title       String
+  description String
+  authorId    String
+  author      User        @relation(fields: [authorId], references: [id])
+  modules     Module[]
+  enrollments Enrollment[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Module {
+  id        String    @id @default(uuid())
+  title     String
+  courseId  String
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons   Lesson[]
+  order     Int       // To maintain module order in course
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Lesson {
+  id         String     @id @default(uuid())
+  title      String
+  content    String
+  videoUrl   String?
+  moduleId   String
+  module     Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress   Progress[]
+  order      Int       // To maintain lesson order in module
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Enrollment {
+  id        String    @id @default(uuid())
+  userId    String
+  courseId  String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status    EnrollmentStatus @default(ENROLLED)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, courseId])
+}
+
+model Progress {
+  id        String    @id @default(uuid())
+  userId    String
+  lessonId  String
+  status    ProgressStatus
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, lessonId])
 }
 
 model AuthToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id        String    @id @default(uuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
   expiresAt DateTime
 }
 
 enum Role {
-  USER
   ADMIN
+  STUDENT
+}
+
+enum EnrollmentStatus {
+  ENROLLED
+  COMPLETED
+  CANCELLED
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
 }
