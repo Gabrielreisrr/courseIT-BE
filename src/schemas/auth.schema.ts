@@ -1,3 +1,4 @@
 export interface TokenPayload {
-  id: number;
+  id: string;
+  role: "ADMIN" | "STUDENT";
 }

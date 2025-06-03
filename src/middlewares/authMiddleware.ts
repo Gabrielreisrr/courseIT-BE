@@ -4,7 +4,7 @@ import { TokenPayload } from "../schemas/auth.schema";
 
 declare module "fastify" {
   interface FastifyRequest {
-    user?: TokenPayload;
+    user: TokenPayload | undefined;
   }
 }
 
