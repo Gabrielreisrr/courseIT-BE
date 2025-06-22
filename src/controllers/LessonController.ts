@@ -6,6 +6,19 @@ import {
   updateLessonSchema,
 } from "../schemas/lesson.schema";
 import { moduleService } from "../services/moduleService";
+import path from "path";
+import fs from "fs";
+import * as fastifyMultipart from "@fastify/multipart";
+
+declare module "fastify" {
+  interface FastifyRequest {
+    file: (
+      options?:
+        | Omit<import("@fastify/busboy").BusboyConfig, "headers">
+        | fastifyMultipart.FastifyMultipartBaseOptions
+    ) => Promise<fastifyMultipart.MultipartFile | undefined>;
+  }
+}
 
 class LessonController {
   async create(request: FastifyRequest, reply: FastifyReply) {
@@ -19,7 +32,6 @@ class LessonController {
           .send({ error: "Only admins can create lessons" });
       }
 
-      // Check if user is the course author
       const module = await moduleService.findById(lessonData.moduleId);
       if (!module || module.course.authorId !== user.id) {
         return reply
@@ -133,6 +145,56 @@ class LessonController {
       return reply.send(lessons);
     } catch (error) {
       console.error("Error getting module lessons:", error);
+      return reply.status(500).send({ error: "Internal server error" });
+    }
+  }
+
+  async uploadVideo(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      const user = request.user;
+
+      if (!user || user.role !== "ADMIN") {
+        return reply
+          .status(403)
+          .send({ error: "Only admins can upload lesson videos" });
+      }
+
+      if (!(await lessonService.isCourseAuthor(id, user.id))) {
+        return reply
+          .status(403)
+          .send({ error: "You can only upload videos for your own lessons" });
+      }
+
+      const data = await request.file();
+      if (!data) {
+        return reply.status(400).send({ error: "No file uploaded" });
+      }
+
+      const allowedTypes = ["video/mp4", "video/webm", "video/ogg"];
+      if (!allowedTypes.includes(data.mimetype)) {
+        return reply.status(400).send({ error: "Invalid video format" });
+      }
+
+      const ext = path.extname(data.filename);
+      const fileName = `lesson_${id}_${Date.now()}${ext}`;
+      const uploadPath = path.join(__dirname, "../../uploads/videos", fileName);
+      const writeStream = fs.createWriteStream(uploadPath);
+      await data.file.pipe(writeStream);
+
+      await new Promise<void>((resolve, reject) => {
+        writeStream.on("finish", () => resolve());
+        writeStream.on("error", () => reject());
+      });
+
+      const videoUrl = `/videos/${fileName}`;
+      await lessonService.update(id, { videoUrl });
+      return reply.send({ videoUrl });
+    } catch (error) {
+      console.error("Error uploading lesson video:", error);
       return reply.status(500).send({ error: "Internal server error" });
     }
   }
