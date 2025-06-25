@@ -11,5 +11,6 @@ export async function lessonRoutes(app: FastifyInstance) {
     protectedRoutes.delete("/:id", lessonController.delete);
     protectedRoutes.get("/:id", lessonController.getById);
     protectedRoutes.get("/module/:moduleId", lessonController.getByModule);
+    protectedRoutes.post("/:id/upload-video", lessonController.uploadVideo);
   });
 }

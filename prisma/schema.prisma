@@ -26,6 +26,7 @@ model Course {
   title       String
   description String
   authorId    String
+  imageUrl    String?
   author      User        @relation(fields: [authorId], references: [id])
   modules     Module[]
   enrollments Enrollment[]

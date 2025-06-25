@@ -1,5 +1,9 @@
 import Fastify, { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
+import fastifyStatic from "@fastify/static";
+import path from "path";
+import fs from "fs";
+import multipart from "@fastify/multipart";
 
 import { userRoutes } from "./routes/userRoutes";
 import { courseRoutes } from "./routes/courseRoutes";
@@ -13,10 +17,26 @@ class App {
   public app: FastifyInstance;
 
   constructor() {
+    this.ensureUploadsDir();
     this.app = Fastify();
     this.middlewares();
+    this.staticFiles();
     this.routes();
     this.serverLog();
+  }
+
+  private ensureUploadsDir() {
+    const dir = path.join(__dirname, "../uploads/videos");
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
+
+  private staticFiles(): void {
+    this.app.register(fastifyStatic, {
+      root: path.join(__dirname, "../uploads/videos"),
+      prefix: "/videos/",
+    });
   }
 
   private async serverLog(): Promise<void> {
@@ -36,6 +56,11 @@ class App {
       origin: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       credentials: true,
+    });
+    this.app.register(multipart, {
+      limits: {
+        fileSize: 100 * 1024 * 1024, // 100MB
+      },
     });
   }
 
